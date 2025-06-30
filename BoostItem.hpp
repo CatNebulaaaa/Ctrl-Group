@@ -1,18 +1,27 @@
+#pragma once
+
 #include "Entity.hpp"
-#include "BoostType.hpp"
 
 class Kirby;
+
+enum class BoostType {
+	HEAL,  // æ²»ç–—ï¼šå¢åŠ ä¸€å®šè¡€é‡
+	INVINCIBLE,  // æ— æ•Œ
+	HASTE,   //åŠ é€Ÿ
+	DAMAGEUP   //å¢åŠ æ”»å‡»åŠ›
+};
 
 class BoostItem : public Entity
 {
 protected:
-	BoostType type;
-	float size = 50.f;   //ËùÕ¼Ãæ»ı´óĞ¡
+	BoostType type = BoostType::HEAL;
+	float size = 50.f;   //æ‰€å é¢ç§¯å¤§å°
+	sf::RectangleShape shape; // Kirby çš„å›¾å½¢å½¢çŠ¶:çŸ©å½¢ï¼›å¹¶ç”¨æ¥è®¾ç½®Kirbyçš„å¤§å°
 
-	//ÊµÏÖ¸¡¶¯
+	//å®ç°æµ®åŠ¨
 	sf::Clock floatClock;
-	float floatAmplitude = 5.0f; // ¸¡¶¯µÄ×î´ó·ù¶È£¨ÉÏÏÂ×Ü¹² 10 ÏñËØ£©
-	float floatSpeed = 2.0f;    // ¸¡¶¯µÄËÙ¶È£¨Ô½´ó¸¡¶¯Ô½¿ì£©
+	float floatAmplitude = 5.0f; // æµ®åŠ¨çš„æœ€å¤§å¹…åº¦ï¼ˆä¸Šä¸‹æ€»å…± 10 åƒç´ ï¼‰
+	float floatSpeed = 2.0f;    // æµ®åŠ¨çš„é€Ÿåº¦ï¼ˆè¶Šå¤§æµ®åŠ¨è¶Šå¿«ï¼‰
 public:
 	BoostItem(sf::Vector2f spawnPos, const sf::Texture& texture, BoostType tp);
 	
@@ -22,5 +31,6 @@ public:
 	void update(float deltaTime) override;
 	void draw(sf::RenderWindow& window) override;
 	void handleCollision(Entity& other) override; 
+	void setSpriteTextureRect(const sf::IntRect& rect) override;
 
 };
