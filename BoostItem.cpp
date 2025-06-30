@@ -1,8 +1,8 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <SFML/Window.hpp>
-#include <iostream> // ÓÃÓÚµ÷ÊÔÊä³ö
-#include <optional> // ÓÃÓÚ SFML 3.0.0 µÄÊÂ¼ş´¦Àí
+#include <iostream> // ç”¨äºè°ƒè¯•è¾“å‡º
+#include <optional> // ç”¨äº SFML 3.0.0 çš„äº‹ä»¶å¤„ç†
 #include <algorithm>
 #include <cmath>
 
@@ -12,59 +12,78 @@
 class Kirby;
 
 BoostItem::BoostItem(sf::Vector2f spawnPos, const sf::Texture& texture, BoostType tp) :
-	Entity(spawnPos.x, spawnPos.y, texture),
-	type(type){ }
+    Entity(spawnPos.x, spawnPos.y, texture),
+    type(tp)
+{
+    
+    // å¦‚æœ å¢ç›Šæœå® çš„å›¾å½¢å½¢çŠ¶ (shape) ç”¨äºå®šä¹‰å…¶å›ºå®šå¤§å°æˆ–ç¢°æ’ä½“ï¼š
+    shape.setSize(sf::Vector2f(50.f, 50.f)); // ä¾‹å¦‚ï¼Œè®¾ç½® å¢ç›Šæœå® çš„å›ºå®šå¤§å°ä¸º 50x50 åƒç´ 
+    shape.setFillColor(sf::Color::White);  // é»˜è®¤é¢œè‰²
+}
 
-//Èç¹ûÃ»±»³Ôµô¾Í»æÖÆ¹ûÊµ
+//å¦‚æœæ²¡è¢«åƒæ‰å°±ç»˜åˆ¶æœå®
 void BoostItem::draw(sf::RenderWindow& window) {
     if (isAlive) {
         window.draw(sprite);
     }
 }
 
-//Ìí¼ÓÒ»¸öÉÏÏÂ¸¡¶¯µÄ¶¯×÷
+//æ·»åŠ ä¸€ä¸ªä¸Šä¸‹æµ®åŠ¨çš„åŠ¨ä½œ
 void BoostItem::update(float deltaTime) {
-    // »ñÈ¡×Ô¼ÆÊ±Æ÷ÖØÆôÒÔÀ´µÄ×ÜÊ±¼ä£¨Ãë£©
+    // è·å–è‡ªè®¡æ—¶å™¨é‡å¯ä»¥æ¥çš„æ€»æ—¶é—´ï¼ˆç§’ï¼‰
     float elapsedTime = floatClock.getElapsedTime().asSeconds();
 
-    // ¼ÆËã Y ÖáµÄ¸¡¶¯Æ«ÒÆÁ¿
-    // std::sin º¯Êı½ÓÊÜ»¡¶È£¬floatSpeed ¿ÉÒÔ¿ØÖÆ¸¡¶¯ÆµÂÊ
+    // è®¡ç®— Y è½´çš„æµ®åŠ¨åç§»é‡
+    // std::sin å‡½æ•°æ¥å—å¼§åº¦ï¼ŒfloatSpeed å¯ä»¥æ§åˆ¶æµ®åŠ¨é¢‘ç‡
     float yOffset = std::sin(elapsedTime * floatSpeed) * floatAmplitude;
 
-    // ½«¸¡¶¯Æ«ÒÆÁ¿Ó¦ÓÃµ½¾«ÁéµÄ Y ×ø±êÉÏ
-    // ×¢Òâ£º`position.x` ±£³Ö²»±ä£¬`position.y` ¼ÓÉÏ»ùÀà `position` µÄ Y ×ø±êºÍÆ«ÒÆÁ¿
+    // å°†æµ®åŠ¨åç§»é‡åº”ç”¨åˆ°ç²¾çµçš„ Y åæ ‡ä¸Š
+    // æ³¨æ„ï¼š`position.x` ä¿æŒä¸å˜ï¼Œ`position.y` åŠ ä¸ŠåŸºç±» `position` çš„ Y åæ ‡å’Œåç§»é‡
     sprite.setPosition({ position.x, position.y + yOffset });
 
-    // ¸üĞÂÅö×²¿òµÄÎ»ÖÃ£¬ÒÔÆ¥Åä¸¡¶¯ºóµÄ¾«ÁéÎ»ÖÃ
+    // æ›´æ–°ç¢°æ’æ¡†çš„ä½ç½®ï¼Œä»¥åŒ¹é…æµ®åŠ¨åçš„ç²¾çµä½ç½®
     boundingBox = sprite.getGlobalBounds();
 }
 
 void BoostItem::handleCollision(Entity& other) {
-    // 1. È·±£ BoostItem ´¦ÓÚ»î¶¯×´Ì¬
+    // 1. ç¡®ä¿ BoostItem å¤„äºæ´»åŠ¨çŠ¶æ€
     if (!isAlive) {
         return;
     }
 
-    // 2. ³¢ÊÔ½« other ×ª»»Îª Kirby ÀàĞÍ
-    // static_cast Ò²¿ÉÒÔ£¬µ« dynamic_cast ¸ü°²È«£¬Èç¹û other ²»ÊÇ Kirby£¬Ëü»á·µ»Ø nullptr
+    // 2. å°è¯•å°† other è½¬æ¢ä¸º Kirby ç±»å‹
+    // static_cast ä¹Ÿå¯ä»¥ï¼Œä½† dynamic_cast æ›´å®‰å…¨ï¼Œå¦‚æœ other ä¸æ˜¯ Kirbyï¼Œå®ƒä¼šè¿”å› nullptr
     Kirby* kirbyPtr = dynamic_cast<Kirby*>(&other);
 
-    // 3. Èç¹û other È·ÊµÊÇ Kirby ²¢ÇÒ Kirby Ò²»î×Å
+    // 3. å¦‚æœ other ç¡®å®æ˜¯ Kirby å¹¶ä¸” Kirby ä¹Ÿæ´»ç€
     if (kirbyPtr && kirbyPtr->getIsAlive()) {
-        // »ñÈ¡ BoostItem ºÍ Kirby µÄÅö×²±ß½ç¿ò
+        // è·å– BoostItem å’Œ Kirby çš„ç¢°æ’è¾¹ç•Œæ¡†
         sf::FloatRect boostItemBounds = getGlobalBounds();
         sf::FloatRect kirbyBounds = kirbyPtr->getGlobalBounds();
 
-        // ¼ì²éÊÇ·ñÓĞÈÎºÎÖØµş
-        if (const std::optional intersection = boundingBox.findIntersection(kirbyPtr->getGlobalBounds())) {
+        // æ£€æŸ¥æ˜¯å¦æœ‰ä»»ä½•é‡å 
+        if (std::optional<sf::FloatRect> intersection = boundingBox.findIntersection(kirbyPtr->getGlobalBounds())) {
             float intersectionArea = intersection->size.x * intersection->size.y;
-            // ÅĞ¶ÏÖØµşÃæ»ıÊÇ·ñ³¬¹ı BoostItem ×ÔÉíÃæ»ıµÄÒ»°ë
+            // åˆ¤æ–­é‡å é¢ç§¯æ˜¯å¦è¶…è¿‡ BoostItem è‡ªèº«é¢ç§¯çš„ä¸€åŠ
             if (intersectionArea >= (size * 0.5f)) {
-                // Èç¹ûÂú×ãÌõ¼ş£¬¼¤»îÔöÒæĞ§¹û
-                boost(kirbyPtr); // µ÷ÓÃÓÑÔªº¯Êı£¬´«Èë Kirby ÒıÓÃ
+                // å¦‚æœæ»¡è¶³æ¡ä»¶ï¼Œæ¿€æ´»å¢ç›Šæ•ˆæœ
+                boost(kirbyPtr); // è°ƒç”¨å‹å…ƒå‡½æ•°ï¼Œä¼ å…¥ Kirby å¼•ç”¨
             }
         }
     }
+}
+
+//è®¾ç½®çº¹ç†çŸ©å½¢
+void BoostItem::setSpriteTextureRect(const sf::IntRect& rect) {
+    sprite.setTextureRect(rect);
+    // æ¯æ¬¡çº¹ç†çŸ©å½¢æ”¹å˜åï¼Œå¦‚æœKirbyçš„è§†è§‰å°ºå¯¸éœ€è¦ä¿æŒä¸å˜ï¼Œéœ€è¦é‡æ–°è°ƒæ•´ç¼©æ”¾æˆ–åŸç‚¹
+    // è¿™é‡Œæˆ‘ä»¬å‡è®¾Kirbyçš„å¤§å°ç”±shapeå†³å®šï¼Œspriteéœ€è¦é€‚åº”å®ƒ
+    if (sprite.getLocalBounds().size.x > 0 && sprite.getLocalBounds().size.y > 0) {
+        sprite.setScale({ shape.getSize().x / sprite.getLocalBounds().size.x,
+            shape.getSize().y / sprite.getLocalBounds().size.y });
+    }
+    // æ›´æ–°ç¢°æ’æ¡†ä»¥åŒ¹é…æ–°çš„ç²¾çµå°ºå¯¸ï¼ˆå¦‚æœçº¹ç†çŸ©å½¢å½±å“äº†å°ºå¯¸ï¼‰
+    boundingBox = sprite.getGlobalBounds();
 }
 
 
@@ -74,40 +93,40 @@ void BoostItem::boost(Kirby* kirby)
         return;
     }
 
-    std::cout << "Kirby ¼ñµ½ÁËÔöÒæ¹ûÊµ: ";
+    std::cout << "Kirby æ¡åˆ°äº†å¢ç›Šæœå®: ";
 
-    switch (type) { // ¸ù¾İ BoostItem µÄÀàĞÍÀ´ÅĞ¶Ï
+    switch (type) { // æ ¹æ® BoostItem çš„ç±»å‹æ¥åˆ¤æ–­
     case BoostType::HEAL:
-        // ÖÎÁÆĞ§¹û£ºÔö¼Ó Kirby µÄµ±Ç°ÉúÃüÖµ£¬µ«²»³¬¹ı×î´óÉúÃüÖµ
+        // æ²»ç–—æ•ˆæœï¼šå¢åŠ  Kirby çš„å½“å‰ç”Ÿå‘½å€¼ï¼Œä½†ä¸è¶…è¿‡æœ€å¤§ç”Ÿå‘½å€¼
         kirby->health = std::min(kirby->health + 25, kirby->maxHealth);
-        std::cout << "ÖÎÁÆ£¡µ±Ç°ÉúÃüÖµ: " << kirby->health << std::endl;
+        std::cout << "æ²»ç–—ï¼å½“å‰ç”Ÿå‘½å€¼: " << kirby->health << std::endl;
         break;
 
     case BoostType::DAMAGEUP:
-        // ÔöÉËĞ§¹û£ºÌáÉı Kirby µÄ¹¥»÷Á¦£¬²¢Æô¶¯¼ÆÊ±Æ÷
-        kirby->currentAttackDamage = kirby->attackDamage * 2.0f; // ¹¥»÷Á¦·­±¶
+        // å¢ä¼¤æ•ˆæœï¼šæå‡ Kirby çš„æ”»å‡»åŠ›ï¼Œå¹¶å¯åŠ¨è®¡æ—¶å™¨
+        kirby->currentAttackDamage = kirby->attackDamage * 2.0f; // æ”»å‡»åŠ›ç¿»å€
         kirby->hasAttackBoost = true;
-        kirby->attackBoostTimer.restart(); // ÖØÆô¹¥»÷Á¦ÌáÉı¼ÆÊ±Æ÷
-        std::cout << "¹¥»÷Á¦ÌáÉı£¡" << std::endl;
+        kirby->attackBoostTimer.restart(); // é‡å¯æ”»å‡»åŠ›æå‡è®¡æ—¶å™¨
+        std::cout << "æ”»å‡»åŠ›æå‡ï¼" << std::endl;
         break;
 
     case BoostType::INVINCIBLE:
-        // ÎŞµĞĞ§¹û£ºÉèÖÃ Kirby ÎªÎŞµĞ×´Ì¬£¬²¢Æô¶¯¼ÆÊ±Æ÷
+        // æ— æ•Œæ•ˆæœï¼šè®¾ç½® Kirby ä¸ºæ— æ•ŒçŠ¶æ€ï¼Œå¹¶å¯åŠ¨è®¡æ—¶å™¨
         kirby->isInvincible = true;
-        kirby->invincibilityTimer.restart(); // ÖØÆôÎŞµĞ¼ÆÊ±Æ÷
-        std::cout << "»ñµÃÎŞµĞĞ§¹û£¡" << std::endl;
+        kirby->invincibilityTimer.restart(); // é‡å¯æ— æ•Œè®¡æ—¶å™¨
+        std::cout << "è·å¾—æ— æ•Œæ•ˆæœï¼" << std::endl;
         break;
 
     case BoostType::HASTE:
-        //¼ÓËÙĞ§¹û
-        kirby->velocity.x *= 1.5f; // ËÙ¶ÈÌáÉı 50%
+        //åŠ é€Ÿæ•ˆæœ
+        kirby->velocity.x *= 1.5f; // é€Ÿåº¦æå‡ 50%
         kirby->hasSpeedBoost = true;
         kirby->speedBoostTimer.restart();
-        std::cout << "»ñµÃ¼ÓËÙĞ§¹û£¡" << std::endl;
+        std::cout << "è·å¾—åŠ é€Ÿæ•ˆæœï¼" << std::endl;
         break;
     }
-    // ÔöÒæ¹ûÊµ±»¡°³Ôµô¡±ºó£¬½«Æä±ê¼ÇÎª²»»îÔ¾£¬ÒÔ±ã´ÓÓÎÏ·ÊÀ½çÖĞÒÆ³ı
-    isAlive = false;
+    // å¢ç›Šæœå®è¢«â€œåƒæ‰â€åï¼Œå°†å…¶æ ‡è®°ä¸ºä¸æ´»è·ƒï¼Œä»¥ä¾¿ä»æ¸¸æˆä¸–ç•Œä¸­ç§»é™¤
+    setAlive(false);
 }
 
 
