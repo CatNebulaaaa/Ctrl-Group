@@ -1,74 +1,110 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <memory>
-#include<iostream>
-// 假设Kirby和Enemy是自定义的游戏实体类
-
-
-class Kirby {
-private:
-    sf::Sprite sprite;  // 用于表示Kirby的精灵
-    sf::Texture texture;
-    sf::FloatRect bounds;  // Kirby的碰撞框
-    float speed;  // Kirby的移动速度
-
-public:
-    // 构造函数，初始化Kirby的相关属性
-    Kirby(): sprite(texture) { //使用成员初始化列表
-        // 假设加载一个默认的Kirby纹理图片，这里需根据实际纹理路径修改
-        if (!texture.loadFromFile("C:\\Users\\bxmf7\\Desktop\\Image\\Kirby.png")) {
-            // 处理纹理加载失败的情况，比如输出错误信息
-            std::cerr << "Failed to load Kirby texture." << std::endl;
-        }
-        // 设置初始位置
-        sprite.setPosition({ 100.f, 100.f });
-        // 根据精灵尺寸初始化碰撞框，这里简单以精灵尺寸作为碰撞框尺寸
-        bounds = sprite.getGlobalBounds();
-        speed = 100.f;  // 设置移动速度
-    }
-
-    // 获取Kirby的精灵，用于渲染
-    sf::Sprite getSprite() const {
-        return sprite;
-    }
-
-    // 获取Kirby的碰撞框
-    sf::FloatRect getBounds() const {
-        return bounds;
-    }
-
-    // 移动Kirby
-    void move(float dx, float dy) {
-        sprite.move({ dx * speed, dy * speed });
-        bounds.position += {dx * speed, dy* speed};
-    }
-
-    // 设置Kirby的位置
-    void setPosition(float x, float y) {
-        sprite.setPosition({ x, y });
-        bounds.position.x = x;
-        bounds.position.y = y;
-    }
-};
-class Enemy {
-public:
-    sf::FloatRect getBounds() const {
-        // 这里应返回敌人碰撞框的实际逻辑
-        return sf::FloatRect();
-    }
-};
+#include <algorithm>
+#include <iostream>
+#include <cstdint>
 
 class CollisionManager {
 public:
-    // 检查碰撞
-    void checkCollisions(Kirby& kirby, std::vector<std::unique_ptr<Enemy>>& enemies) {
-        sf::FloatRect kirbyBounds = kirby.getBounds();
-        for (auto& enemy : enemies) {
-            sf::FloatRect enemyBounds = enemy->getBounds();
-            if (kirbyBounds.findIntersection(enemyBounds)) {
-                // 这里调用相应的碰撞处理逻辑，暂未实现具体handleCollision方法
-                // 可以根据实际需求添加碰撞后的响应，如扣血、反弹等
+    // 基础矩形碰撞检测 (SFML 3.0 使用 intersects() 替代旧的 intersects 函数)
+    static bool checkRectCollision(const sf::FloatRect& rect1, const sf::FloatRect& rect2) {
+        return rect1.findIntersection(rect2).has_value();
+    }
+    // 圆形与矩形碰撞检测 (兼容 SFML 3.0 的数学工具)
+    static bool checkCircleRectCollision(
+        const sf::Vector2f& circleCenter,
+        float circleRadius,
+        const sf::FloatRect& rect
+    ) {
+        // SFML 3.0 推荐使用 std::hypot 计算距离
+        sf::Vector2f closestPoint(
+            std::clamp(circleCenter.x, rect.position.x, rect.position.x + rect.size.x),
+            std::clamp(circleCenter.y, rect.position.y, rect.position.y + rect.size.y)
+        );
+
+        float distance = std::hypot(
+            circleCenter.x - closestPoint.x,
+            circleCenter.y - closestPoint.y
+        );
+        return distance < circleRadius;
+    }
+
+    // 实体与瓦片地图碰撞检测 (适配 SFML 3.0 的坐标系)
+    static bool checkTileMapCollision(
+        const sf::FloatRect& entityBounds,
+        const std::vector<std::vector<int>>& tileData,
+        int tileSize,
+        const std::vector<int>& solidTiles = { 1 }
+    ) {
+        // 计算实体覆盖的瓦片范围
+        int startX = static_cast<int>(entityBounds.position.x / tileSize);
+        int endX = static_cast<int>((entityBounds.position.x + entityBounds.size.x) / tileSize);
+        int startY = static_cast<int>(entityBounds.position.y / tileSize);
+        int endY = static_cast<int>((entityBounds.position.y + entityBounds.size.y) / tileSize);
+
+        // 检查每个可能碰撞的瓦片
+        for (int y = startY; y <= endY; ++y) {
+            for (int x = startX; x <= endX; ++x) {
+                if (y >= 0 && y < tileData.size() &&
+                    x >= 0 && x < tileData[y].size())
+                {
+                    int tileIndex = tileData[y][x];
+                    if (std::find(solidTiles.begin(), solidTiles.end(), tileIndex) != solidTiles.end()) {
+                        return true;
+                    }
+                }
             }
         }
+        return false;
+    }
+
+    // 像素级精确碰撞检测 (适配 SFML 3.0 的纹理访问 API)
+    static bool checkPixelPerfectCollision(
+        const sf::Sprite& sprite1,
+        const sf::Sprite& sprite2,
+        std::uint8_t alphaThreshold = 128
+    ) {
+        // 获取全局边界并快速检查
+        sf::FloatRect bounds1 = sprite1.getGlobalBounds();
+        sf::FloatRect bounds2 = sprite2.getGlobalBounds();
+        if (!bounds1.findIntersection(bounds2).has_value()) return false;
+
+        // 计算相交区域
+        auto overlap = bounds1.findIntersection(bounds2).value();
+
+
+        // 获取纹理数据 (SFML 3.0 使用更安全的纹理访问方式)
+        const sf::Texture* tex1 = &sprite1.getTexture();
+        const sf::Texture* tex2 = &sprite2.getTexture();
+        if (!tex1 || !tex2) return false;
+
+        // 转换为纹理坐标
+        sf::Vector2f texPos1 = sprite1.getInverseTransform().transformPoint({ overlap.position.x, overlap.position.y });
+        sf::Vector2f texPos2 = sprite2.getInverseTransform().transformPoint({ overlap.position.x, overlap.position.y });
+
+        // 检查每个像素 (实际项目中建议使用优化算法)
+        for (int y = 0; y < overlap.size.y; ++y) {
+            for (int x = 0; x < overlap.size.x; ++x) {
+                sf::Vector2f texCoord1 = texPos1 + sf::Vector2f(x, y);
+                sf::Vector2f texCoord2 = texPos2 + sf::Vector2f(x, y);
+
+                // 注意：实际像素检查需要实现 getPixel() 功能
+                // 此处为伪代码，需要根据项目实际需求补充
+                if (getPixelAlpha(tex1, texCoord1) > alphaThreshold &&
+                    getPixelAlpha(tex2, texCoord2) > alphaThreshold) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+private:
+    // 辅助函数：获取纹理像素的Alpha值 (需根据项目实现)
+    static std::uint8_t getPixelAlpha(const sf::Texture* texture, const sf::Vector2f& coord) {
+        // 实际项目中需要将纹理复制到 sf::Image 或使用 GPU 着色器实现
+        // 此处返回默认值仅作演示
+        return 255;
     }
 };
