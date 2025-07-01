@@ -105,6 +105,70 @@ public:
         }
         return false;  //如果没有找到任何碰撞的像素
     }
+    // 新增：处理Kirby与敌人的碰撞
+    void checkKirbyEnemyCollisions(Kirby& kirby, const std::vector<std::unique_ptr<Enemy>>& enemies) {
+        for (const auto& enemy : enemies) {
+            if (checkRectCollision(kirby.getGlobalBounds(), enemy->getGlobalBounds())) {
+                // 检查敌人类型是否为尖刺类型
+                if (enemy->getType() == EnemyType::SPIKE) {
+                    kirby.takeDamage(1); // 生命值-1
+                    enemy->handleCollision(kirby); // 可选的碰撞响应
+                }
+                // 其他敌人类型的处理...
+            }
+        }
+    }
+
+    // 新增：处理Kirby与砖块的碰撞
+    void checkKirbyTileCollisions(Kirby& kirby,
+        const std::vector<std::vector<int>>& tileData,
+        int tileSize) {
+        // 获取Kirby的碰撞框（可以比实际精灵稍小以避免边缘误判）
+        sf::FloatRect kirbyBounds = kirby.getCollisionBounds();
+
+        // 计算Kirby覆盖的瓦片范围
+        int startX = static_cast<int>(kirbyBounds.position.x / tileSize);
+        int endX = static_cast<int>((kirbyBounds.position.x + kirbyBounds.size.x) / tileSize);
+        int startY = static_cast<int>(kirbyBounds.position.y / tileSize);
+        int endY = static_cast<int>((kirbyBounds.position.x + kirbyBounds.size.y) / tileSize);
+
+        // 检查每个可能碰撞的瓦片
+        for (int y = startY; y <= endY; ++y) {
+            for (int x = startX; x <= endX; ++x) {
+                if (y >= 0 && y < tileData.size() && x >= 0 && x < tileData[y].size()) {
+                    int tileIndex = tileData[y][x];
+
+                    // 尖刺砖块处理
+                    if (tileIndex == TILE_SPIKE) {
+                        kirby.takeDamage(1); // 生命值-1
+                    }
+                    // 易碎砖块处理
+                    else if (tileIndex == TILE_BREAKABLE) {
+                        // 检查是否从下方撞击（跳跃撞击）
+                        if (kirby.isJumpAttacking() &&
+                            kirbyBounds.position.y + kirbyBounds.size.y < y * tileSize + 10) { // 10是容错值
+                            // 标记砖块为已破坏
+                            tileData[y][x] = TILE_EMPTY;
+                            // 触发砖块破碎效果
+                            spawnParticles(x * tileSize, y * tileSize);
+                            // Kirby获得轻微反弹
+                            kirby.bounceAfterBreak();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 新增：综合碰撞检查方法
+    void checkAllCollisions(Kirby& kirby,
+        const std::vector<std::unique_ptr<Enemy>>& enemies,
+        const std::vector<std::vector<int>>& tileData,
+        int tileSize) {
+        checkKirbyEnemyCollisions(kirby, enemies);
+        checkKirbyTileCollisions(kirby, tileData, tileSize);
+        // 可以添加其他碰撞检查...
+    }
 
 private:
     // 辅助函数：获取纹理像素的Alpha值
