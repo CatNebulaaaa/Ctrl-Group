@@ -1,0 +1,174 @@
+1.准备好音效Z(.wav)和音乐(.ogg)
+2.在游戏主类(Game.h)中添加音频提供者
+#include "SFMLSoundProvider.h"
+class Game {
+private:
+    IAudioProvider* _audioProvider; // 音频提供者接口
+    // ... 其他成员
+public:
+    Game() 
+    {
+        _audioProvider = new SFMLSoundProvider();
+        // ... 其他初始化
+    }
+    ~Game() 
+    {
+        delete _audioProvider;
+    }
+    IAudioProvider& GetAudioProvider() { return *_audioProvider; }
+};
+
+
+3.添加音效
+ 1）定义音效枚举// Sounds.h
+#pragma once
+namespace Sounds {
+    const std::string JUMP = "assets/sounds/jump.wav";
+    const std::string HIT = "assets/sounds/hit.wav";
+    const std::string COLLECT = "assets/sounds/collect.wav";
+    const std::string MENU_SELECT = "assets/sounds/menu_select.wav";
+    // ... 其他音效
+}
+namespace Music {
+    const std::string MAIN_THEME = "assets/music/main_theme.ogg";
+    const std::string LEVEL_1 = "assets/music/level1.ogg";
+    // ... 其他背景音乐
+}
+
+ 2）在游戏中使用【在游戏逻辑中播放音效】，
+e.p.1.当卡比跳跃时
+void Kirby::Jump() 
+{
+    // ... 跳跃逻辑
+    GetAudioProvider().PlaySound(Sounds::JUMP);
+}
+//最后有该示例↑
+e.p.2.当收集物品时
+void Game::CollectItem() 
+{
+    // ... 收集逻辑
+    GetAudioProvider().PlaySound(Sounds::COLLECT);
+}
+//播放背景音乐
+void Game::StartLevel() {
+    GetAudioProvider().PlaySong(Music::LEVEL_1, true); // 循环播放
+}
+
+
+
+4.基本音效（e.p.）
+// 卡比动作音效
+void PlayKirbySoundEffects() 
+{
+    //吸入敌人
+    GetAudioProvider().PlaySound(Sounds::INHALE);
+    //吐出星弹
+    GetAudioProvider().PlaySound(Sounds::SPIT);
+    //跳跃
+    GetAudioProvider().PlaySound(Sounds::JUMP);
+    //获得能力
+    GetAudioProvider().PlaySound(Sounds::POWER_UP);
+}
+// UI音效
+void PlayUISounds() 
+{
+    //菜单选择
+    GetAudioProvider().PlaySound(Sounds::MENU_SELECT);
+    //确认
+    GetAudioProvider().PlaySound(Sounds::CONFIRM);
+    //返回
+    GetAudioProvider().PlaySound(Sounds::BACK);
+}
+
+
+
+5.BGM管理类
+class MusicManager 
+{
+private:
+    IAudioProvider& _audio;
+    std::string _currentTrack;
+    
+public:
+    MusicManager(IAudioProvider& audio) : _audio(audio) {}
+    
+    void PlayMainTheme() 
+   {
+        if(_currentTrack != Music::MAIN_THEME) 
+        {
+            _audio.PlaySong(Music::MAIN_THEME, true);
+            _currentTrack = Music::MAIN_THEME;
+        }
+    }
+    
+    void PlayLevelMusic(int level)
+   {
+        std::string track = Music::LEVEL_1; // 默认
+        switch(level) 
+        {
+            case 1: track = Music::LEVEL_1; break;
+            case 2: track = Music::LEVEL_2; break;
+            。。。
+        }
+        
+        if(_currentTrack != track) 
+        {
+            _audio.PlaySong(track, true);
+            _currentTrack = track;
+        }
+    }
+    
+    void StopMusic() 
+    {
+        _audio.StopAllSounds();
+        _currentTrack = "";
+    }
+};
+
+
+
+
+
+
+
+
+卡比跳跃音效实现代码
+// Kirby.cpp
+#include "Kirby.h"
+#include "Sounds.h"
+Kirby::Kirby() : _jumpSoundCooldown(0) {
+    // ... 初始化
+}
+void Kirby::Update(float deltaTime) 
+{
+    //更新冷却时间
+    if(_jumpSoundCooldown > 0) {
+        _jumpSoundCooldown -= deltaTime;
+    }
+    // ... 其他更新逻辑
+}
+void Kirby::HandleInput() 
+{
+    if(Input::IsKeyPressed(Key::Space)  Jump();
+    // ... 其他输入处理
+}
+void Kirby::Jump() 
+{
+    if(!_isJumping) 
+    {
+        _isJumping = true;
+        _velocity.y = -JUMP_FORCE;
+        
+        //播放跳跃音效(有冷却避免重复播放太频繁)
+        if(_jumpSoundCooldown <= 0) 
+        {
+            try 
+            {
+                GetAudioProvider().PlaySound(Sounds::JUMP);
+                _jumpSoundCooldown = 0.2f;                   // 200ms冷却
+            } 
+            catch(SoundNotFoundExeception&) 
+            { }    //静默处理或记录错误
+        }
+    }
+}
