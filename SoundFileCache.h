@@ -9,8 +9,8 @@ public://先声明
     SoundFileCache(); //构造函数
     ~SoundFileCache();//析构函数
     //使用公共方法getSound & getSong
-    sf::Sound getSound(std::string filename);
-    sf::Music* getSong(std::string filename);
+    sf::Sound getSound(std::string filename) const;
+    sf::Music* getSong(std::string filename) const;
 private:
     static std::map<std::string, sf::SoundBuffer*> _sounds; //获取音效对象
     static std::map<std::string, sf::Music*> _music; //获取音乐对象指针

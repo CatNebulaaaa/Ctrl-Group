@@ -12,28 +12,24 @@ SoundFileCache::~SoundFileCache()
 }
 sf::Sound SoundFileCache::getSound(std::string soundName) const  //获取一个表示声音文件名的字符串
 {   //查找音效是否已加载
-    std::map<std::string, sf::SoundBuffer*>::iterator itr = _sounds.find(soundName);
+    auto itr = _sounds.find(soundName);
     if (itr == _sounds.end())
     {   //创建新的音效缓冲区
-        sf::SoundBuffer* soundBuffer = new sf::SoundBuffer();
+        sf::SoundBuffer* buffer = new sf::SoundBuffer();
         //尝试加载文件
-        if (!soundBuffer->loadFromFile(soundName))
+        if (!buffer->loadFromFile(soundName))
         {
-            delete soundBuffer;
+            delete buffer;
             throw SoundNotFoundExeception(soundName + "was not found in call to SoundFileCache::gerSound");
         }
         //插入到缓存中
-        std::map<std::string, sf::SoundBuffer*>::iterator res = _sounds.insert(std::pair<std::string, sf::SoundBuffer*>(soundName, soundBuffer)).first;
-        //创建并返回音效对象
-        sf::Sound sound;
-        sound.setBuffer(*soundBuffer);
-        return sound;
+        _sounds.insert({ soundName, buffer }); //将新加载的音效缓冲区插入到缓存中
+        //直接构造
+        return sf::Sound(*buffer);
     }
     else //如果已缓存                          //后续请求相同的音效
     {   //使用缓存的音效缓冲区创建音效对象
-        sf::Sound sound;
-        sound.setBuffer(*itr->second);        // ← 使用此来缓存音效文件，避免重复加载（对象池）
-        return sound;
+        return sf::Sound(*itr->second); //直接构造并绑定
     }
     throw SoundNotFoundExeception(soundName + "was not found in call to SoundFileCache::gerSound");
 }

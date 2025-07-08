@@ -1,8 +1,10 @@
 
 #include"SFMLSoundProvider.h"
 #include "SoundFileCache.h"
-SFMLSoundProvider::SFMLSoundProvider() : _currentSongName("")
+//sf::Sound不能默认构造函数，必须绑定一个sf::SoundBuffer才能创建
+SFMLSoundProvider::SFMLSoundProvider()
 {
+    _currentSounds.resize(MAX_SOUND_CHANNELS);
 }
 //播放音效函数
 //problem：每次只能播放一个音效，解决方法：用一个容器储存音效
@@ -11,7 +13,7 @@ void SFMLSoundProvider::PlaySound(std::string filename)
     int availChannel = -1;
     for (int i = 0;i < MAX_SOUND_CHANNELS;i++)
     {   //if我们想要播放一个声音，遍历所有可用通道，直到找到一个未播放的通道
-        if (_currentSounds[i].getStatus() != sf::Sound::Playing)
+        if (_currentSounds[i].getStatus() != sf::SoundSource::Status::Playing)
         {
             availChannel = i;
             break; //找到一个空闲通道，跳出循环
@@ -40,18 +42,18 @@ void SFMLSoundProvider::PlaySong(std::string filename, bool looping)
     {
         currentSong = _soundFileCache.getSong(filename);
     }
-    catch (SoundNotFooundExeception&)
+    catch (SoundNotFoundExeception&)
     {
         //音乐文件未找到，直接返回
         return;
     }
     //自动停止前一首音乐
-    if (_currentSongName != "")  //_currentSongName跟踪当前音乐
+    if (_currentSongName != " ")  //_currentSongName跟踪当前音乐
     {
         try
         {    // ↓ 流式播放，适合长音频
             sf::Music* priorSong = _soundFileCache.getSong(_currentSongName);
-            if (priorSong->getStatus() != sf::Sound::Stopped)
+            if (priorSong->getStatus() != sf::SoundSource::Status::Stopped)
             {
                 priorSong->stop();  //停止之前的音乐
             }
@@ -66,7 +68,7 @@ void SFMLSoundProvider::PlaySong(std::string filename, bool looping)
         //_soundFileCache.releaseSong(_currentSongName);
     }
     _currentSongName = filename;
-    currentSong->setLoop(looping);
+    currentSong->setLooping(looping);
     currentSong->play();
 }
 //停止所有音频
@@ -79,7 +81,7 @@ void SFMLSoundProvider::StopAllSounds()
     if (_currentSongName != "")
     {
         sf::Music* currentSong = _soundFileCache.getSong(_currentSongName);
-        if (currentSong->getStatus() == sf::Sound::Playing)
+        if (currentSong->getStatus() == sf::SoundSource::Status::Playing)
         {
             currentSong->stop();  //停止当前音乐
         }
@@ -90,7 +92,7 @@ bool SFMLSoundProvider::IsSoundPlaying()
 {
     for (int i = 0;i < MAX_SOUND_CHANNELS;i++)
     {
-        if (_currentSounds[i].getStatus() == sf::Sound::Playing) return true;
+        if (_currentSounds[i].getStatus() == sf::SoundSource::Status::Playing) return true;
     }
     return false;
 }
@@ -99,7 +101,7 @@ bool SFMLSoundProvider::IsSongPlaying()
 {
     if (_currentSongName != "")
     {
-        return _soundFileCache.getSong(_currentSongName)->getStatus() == sf::Music::Playing;
+        return _soundFileCache.getSong(_currentSongName)->getStatus() == sf::SoundSource::Status::Playing;
     }
     return false;
 }
