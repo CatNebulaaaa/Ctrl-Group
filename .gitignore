@@ -1,0 +1,42 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.user
+
+# 编译输出目录
+ourgame/
+x64/
+Debug/
+Release/
+build/
+out/
+
+# 系统和平台特定的文件
+.DS_Store
+Thumbs.db
+detail/
+
+# 第三方库的二进制文件
+SFML-3.0.0/
+tinyxml2.cpp
+tinyxml2.h
+*.dll
+lib/
+bin/
+
+# 临时和缓存文件
+*.tmp
+*.temp
+*.log
+*.cache
+*.pid
+*.seed
+*.pid.lock
+*.lock
+
+# 数据文件
+savegame.dat
+
